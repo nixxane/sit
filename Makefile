@@ -3,7 +3,7 @@
 
 include config.mk
 
-SRC = sit.c gfx.c ui.c player.c util.c json.c net.c xtream.c img.c store.c epg.c
+SRC = sit.c gfx.c ui.c player.c util.c json.c net.c xtream.c m3u.c img.c store.c epg.c
 OBJ = ${SRC:.c=.o}
 
 all: sit
@@ -11,7 +11,7 @@ all: sit
 .c.o:
 	${CC} -c ${CFLAGS} $<
 
-${OBJ}: config.h config.mk util.h gfx.h ui.h player.h json.h net.h playlist.h xtream.h img.h store.h epg.h
+${OBJ}: config.h config.mk util.h gfx.h ui.h player.h json.h net.h playlist.h xtream.h m3u.h img.h store.h epg.h
 gfx.o: vendor/stb_truetype.h
 img.o: vendor/stb_image.h
 

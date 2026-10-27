@@ -1,5 +1,5 @@
 /* See LICENSE file for copyright and license details. */
-enum { SrcDemo, SrcUrls, SrcXtream };
+enum { SrcDemo, SrcUrls, SrcXtream, SrcM3u };
 enum { KindLive, KindVod, KindSeries, KindEpisode, KindProg };
 
 typedef struct {

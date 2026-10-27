@@ -20,7 +20,7 @@ Working rules for agents are in `AGENTS.md`.
 | – | Pulled forward from 6: search, favorites, recent, Arabic/Hebrew | **done** |
 | – | Memory: slim catalogs, capped poster cache, smaller mpv buffers | **done** |
 | 4 | EPG: now/next, guide page, catch-up | **done** (Xtream only; XMLTV moved to 5) |
-| 5 | M3U playlists + XMLTV guide | not started |
+| 5 | M3U playlists + XMLTV guide | M3U **done** (`m3u.c`; parser checked with a headless harness, not yet seen in the UI); XMLTV not started |
 | 6 | Polish: bundled font, light theme, man page, CJK, number entry | not started |
 | 7 | Ports and releases | not started; Linux build **never tried** |
 
@@ -34,8 +34,12 @@ and the memory numbers.
 1. Owner to try EPG and catch-up on their provider; fix the timeshift time
    format or switch to `timeshift.php` if replays start at the wrong time.
 2. Linux build (WSL is available on the dev machine) before the repo goes public.
-3. Milestone 5: M3U (`#EXTINF` attributes, URL or file) and XMLTV
-   (streaming parser, `.xml.gz` via zlib) — XMLTV mainly for M3U sources.
+3. Milestone 5, rest: try an `m3u` source in the UI (sources line
+   `name<TAB>m3u<TAB>url-or-file`; add a `/m3u` route to the fake server for
+   a test), then XMLTV (streaming parser, `.xml.gz` via zlib) matched by
+   `tvg-id` into the `Epg` structures. M3U ids are list positions, so
+   favorites can drift if the provider reorders the list; `catchup*`
+   attributes are ignored.
 4. Milestone 6 items; CJK/Thai still render as `?`.
 5. Code size is ~5,850 non-blank lines without vendor and config (target was 5,000). `sit.c` is
    ~2,450 of them; splitting pages out of it is fair game if it stays readable.

@@ -22,6 +22,7 @@
 #include "net.h"
 #include "playlist.h"
 #include "xtream.h"
+#include "m3u.h"
 #include "img.h"
 #include "store.h"
 #include "epg.h"
@@ -476,6 +477,9 @@ usesource(int i)
 			xt_account(p, cachettl, 0);
 		if (!p->cat[KindLive].loaded && !p->cat[KindLive].loading)
 			xt_load(p, KindLive, cachettl, 0);
+	} else if (p->src->type == SrcM3u) {
+		if (!p->cat[KindLive].loaded && !p->cat[KindLive].loading)
+			m3u_load(p, cachettl, 0);
 	} else if (!p->cat[KindLive].loaded) {
 		loadstatic(p);
 	}
@@ -624,7 +628,7 @@ onjob(Job *j)
 	here = p == P && j->kind != ResAuth && j->sub == tab && !inseries;
 	if (here)
 		remember(gname, sizeof gname, &id);
-	if ((k = xt_result(p, j)) < 0 || p != P)
+	if ((k = j->owner == JobM3u ? m3u_result(p, j) : xt_result(p, j)) < 0 || p != P)
 		return;
 	if (here)
 		restore(gname, id);
@@ -1038,10 +1042,16 @@ static void
 refresh(const Arg *a)
 {
 	(void)a;
-	if (P->src->type != SrcXtream || tab >= PageFav || P->cat[tab].loading)
+	if (tab >= PageFav || P->cat[tab].loading)
 		return;
-	xt_account(P, cachettl, 1);
-	xt_load(P, tab, cachettl, 1);
+	if (P->src->type == SrcM3u) {
+		m3u_load(P, cachettl, 1);
+	} else if (P->src->type == SrcXtream) {
+		xt_account(P, cachettl, 1);
+		xt_load(P, tab, cachettl, 1);
+	} else {
+		return;
+	}
 	osd("Refreshing %s", P->src->name);
 }
 
@@ -2511,7 +2521,8 @@ addsource(const char *name, int type, const char *url, const char *user, const c
 	srcs[nsrcs++] = (Source){ name, type, url, user, pass };
 }
 
-/* tab-separated: name, type, url, user, pass; returns sources added */
+/* tab-separated: name, type, url, user, pass (m3u: name, m3u, url or file);
+ * returns sources added */
 static int
 loadsources(const char *path, int required)
 {
@@ -2539,6 +2550,8 @@ loadsources(const char *path, int required)
 		}
 		if (nf == 5 && !strcmp(f[1], "xtream"))
 			addsource(f[0], SrcXtream, f[2], f[3], f[4]);
+		else if (nf >= 3 && !strcmp(f[1], "m3u"))
+			addsource(f[0], SrcM3u, f[2], "", "");
 		else if (nf >= 2 && !strcmp(f[1], "demo"))
 			addsource(f[0], SrcDemo, NULL, NULL, NULL);
 		else {

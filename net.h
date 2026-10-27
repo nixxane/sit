@@ -1,5 +1,5 @@
 /* See LICENSE file for copyright and license details. */
-enum { JobXtream, JobImg };
+enum { JobXtream, JobImg, JobM3u };
 
 typedef struct Job Job;
 struct Job {

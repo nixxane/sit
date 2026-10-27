@@ -1314,8 +1314,10 @@ digitkey(SDL_Keycode sym)
 {
 	if (sym >= SDLK_0 && sym <= SDLK_9)
 		return sym - SDLK_0;
-	if (sym >= SDLK_KP_0 && sym <= SDLK_KP_9)
-		return sym - SDLK_KP_0;
+	if (sym == SDLK_KP_0)
+		return 0;
+	if (sym >= SDLK_KP_1 && sym <= SDLK_KP_9)
+		return sym - SDLK_KP_1 + 1;
 	return -1;
 }
 

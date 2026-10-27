@@ -221,6 +221,13 @@ hastabs(void)
 	return P->src->type == SrcXtream;
 }
 
+/* an Xtream account or an M3U playlist with an XMLTV guide */
+static int
+hasguide(const Playlist *p)
+{
+	return p->src->type == SrcXtream || (p->src->type == SrcM3u && *p->guide);
+}
+
 /* tabs a source has: Movies and Series need Xtream */
 static int
 tabok(int k)
@@ -617,6 +624,10 @@ onjob(Job *j)
 		img_result(j);
 		return;
 	}
+	if (j->owner == JobXml) {
+		epg_xml_result(j);
+		return;
+	}
 	if (j->kind == ResInfo) {
 		oninfo(j);
 		return;
@@ -764,7 +775,7 @@ freshguide(void)
 static void
 openguide(const Item *ch)
 {
-	if (P->src->type != SrcXtream || ch->kind != KindLive) {
+	if (!hasguide(P) || ch->kind != KindLive) {
 		osd("No guide for this channel");
 		return;
 	}
@@ -1770,7 +1781,7 @@ drawpreview(void)
 	y += gfx_lineh(FontText) + 16 * S;
 	if (seekable())
 		progress(v.x, y, v.w);
-	else if (playkind == KindLive && lists[playsrc].src->type == SrcXtream)
+	else if (playkind == KindLive && hasguide(&lists[playsrc]))
 		drawnow(epg_want(&lists[playsrc], playid, 0), v.x, y, v.w);
 }
 
@@ -2241,7 +2252,7 @@ drawplayer(void)
 			gfx_rect((Rect){ x, card.y + ch - 20 * S, w, 4 * S }, col(ColSel, ovl), 2 * S);
 			gfx_rect((Rect){ x, card.y + ch - 20 * S, w * CLAMP(pl.pos / pl.dur, 0, 1), 4 * S },
 			         col(ColAccent, ovl), 2 * S);
-		} else if (pl.loaded && playkind == KindLive && lists[playsrc].src->type == SrcXtream &&
+		} else if (pl.loaded && playkind == KindLive && hasguide(&lists[playsrc]) &&
 		           (pg = epg_now(epg_want(&lists[playsrc], playid, 0), (long long)time(NULL), &next))) {
 			/* the programme on now, its progress and what follows */
 			frac = (float)(time(NULL) - pg->start) / (pg->stop - pg->start);
@@ -2320,7 +2331,7 @@ draw(void)
 		lastpg = PG;
 		selt = t;
 	}
-	if (!inguide && hastabs() && (it = focused()) && it->kind == KindLive) {
+	if (!inguide && hasguide(P) && (it = focused()) && it->kind == KindLive) {
 		if (t - selt > 0.3)
 			epg_want(P, it->id, 0);
 		else
@@ -2551,7 +2562,7 @@ loadsources(const char *path, int required)
 		if (nf == 5 && !strcmp(f[1], "xtream"))
 			addsource(f[0], SrcXtream, f[2], f[3], f[4]);
 		else if (nf >= 3 && !strcmp(f[1], "m3u"))
-			addsource(f[0], SrcM3u, f[2], "", "");
+			addsource(f[0], SrcM3u, f[2], nf >= 4 ? f[3] : "", "");
 		else if (nf >= 2 && !strcmp(f[1], "demo"))
 			addsource(f[0], SrcDemo, NULL, NULL, NULL);
 		else {

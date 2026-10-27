@@ -1,5 +1,5 @@
 /* See LICENSE file for copyright and license details. */
-enum { JobXtream, JobImg, JobM3u };
+enum { JobXtream, JobImg, JobM3u, JobXml };
 
 typedef struct Job Job;
 struct Job {
@@ -9,6 +9,8 @@ struct Job {
 	void (*work)(Job *);   /* or run this on the worker with the body */
 	int owner, kind, sub, id;  /* for the caller */
 	void *ud;
+	char *aux;             /* input for work(), copied for a stale twin */
+	void *res;             /* output of work(), lives in arena */
 	int fromcache, stale;  /* served from disk; stale: a network result follows */
 	char *data;
 	size_t len, cap;

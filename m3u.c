@@ -13,6 +13,7 @@
 #include "json.h"
 #include "net.h"
 #include "playlist.h"
+#include "epg.h"
 #include "m3u.h"
 
 static int
@@ -72,8 +73,9 @@ groupof(Catalog *c, const char *name, int *last)
 }
 
 static void
-build(Catalog *c, char *buf)
+build(Playlist *p, char *buf)
 {
+	Catalog *c = &p->cat[KindLive];
 	char *line, *next, *t, *title;
 	const char *comma, *grp;
 	char *info = NULL, *extgrp = NULL;
@@ -102,6 +104,17 @@ build(Catalog *c, char *buf)
 			line++;
 		if (!*line)
 			continue;
+		if (!strncmp(line, "#EXTM3U", 7)) {
+			/* the playlist may name its own guide; the sources file wins */
+			if (!*p->src->user) {
+				comma = line + strlen(line);
+				grp = attr(&c->arena, line, comma, "x-tvg-url");
+				if (!*grp)
+					grp = attr(&c->arena, line, comma, "url-tvg");
+				snprintf(p->guide, sizeof p->guide, "%.*s", (int)strcspn(grp, ","), grp);
+			}
+			continue;
+		}
 		if (!strncmp(line, "#EXTINF:", 8)) {
 			info = line + 8;
 			extgrp = NULL;
@@ -155,13 +168,15 @@ m3u_load(Playlist *p, int ttl, int force)
 	Job *j;
 
 	c->err[0] = '\0';
+	snprintf(p->guide, sizeof p->guide, "%s", p->src->user);
 	if (!isurl(p->src->url)) {
 		if (!(buf = readfile(p->src->url, NULL))) {
 			snprintf(c->err, sizeof c->err, "cannot read %s", p->src->url);
 			return;
 		}
-		build(c, (char *)buf);
+		build(p, (char *)buf);
 		free(buf);
+		epg_xmltv(p);
 		return;
 	}
 	snprintf(path, sizeof path, "%s/m3u-%016llx/list.m3u", appdir(DirCache), fnv1a(p->src->url));
@@ -187,8 +202,9 @@ m3u_result(Playlist *p, Job *j)
 		if (!c->err[0])
 			snprintf(c->err, sizeof c->err, "%s", j->err[0] ? j->err : "no data");
 	} else {
-		build(c, j->data);
+		build(p, j->data);
 		rebuilt = KindLive;
+		epg_xmltv(p);
 	}
 	net_free(j);
 	return rebuilt;

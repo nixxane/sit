@@ -20,7 +20,7 @@ Working rules for agents are in `AGENTS.md`.
 | – | Pulled forward from 6: search, favorites, recent, Arabic/Hebrew | **done** |
 | – | Memory: slim catalogs, capped poster cache, smaller mpv buffers | **done** |
 | 4 | EPG: now/next, guide page, catch-up | **done** (Xtream only; XMLTV moved to 5) |
-| 5 | M3U playlists + XMLTV guide | M3U **done** (`m3u.c`; parser checked with a headless harness, not yet seen in the UI); XMLTV not started |
+| 5 | M3U playlists + XMLTV guide | **done** (`m3u.c`, `xmltv.c`); tested against the fake server, programmes confirmed reaching channels, not yet looked at in the UI or tried on a real provider |
 | 6 | Polish: bundled font, light theme, man page, CJK, number entry | not started |
 | 7 | Ports and releases | not started; Linux build **never tried** |
 
@@ -34,14 +34,17 @@ and the memory numbers.
 1. Owner to try EPG and catch-up on their provider; fix the timeshift time
    format or switch to `timeshift.php` if replays start at the wrong time.
 2. Linux build (WSL is available on the dev machine) before the repo goes public.
-3. Milestone 5, rest: try an `m3u` source in the UI (sources line
-   `name<TAB>m3u<TAB>url-or-file`; add a `/m3u` route to the fake server for
-   a test), then XMLTV (streaming parser, `.xml.gz` via zlib) matched by
-   `tvg-id` into the `Epg` structures. M3U ids are list positions, so
-   favorites can drift if the provider reorders the list; `catchup*`
-   attributes are ignored.
+3. Look at an M3U source in the UI and try it on a real playlist. Sources
+   line: `name<TAB>m3u<TAB>url-or-file[<TAB>xmltv-url-or-file]`; without the
+   fourth field the guide comes from `x-tvg-url` / `url-tvg` in the
+   `#EXTM3U` header. Fake server: `/playlist.m3u`, `/guide.xml[.gz]`.
+   Known limits: M3U ids are list positions, so favorites can drift if the
+   provider reorders the list; `catchup*` attributes are ignored; no
+   catch-up from XMLTV; `r` does not force a new guide download (4 h
+   cache); XMLTV channels match `tvg-id` only (case-insensitive), not
+   `tvg-name`.
 4. Milestone 6 items; CJK/Thai still render as `?`.
-5. Code size is ~5,850 non-blank lines without vendor and config (target was 5,000). `sit.c` is
+5. Code size is ~6,500 non-blank lines without vendor (target was 5,000). `sit.c` is
    ~2,450 of them; splitting pages out of it is fair game if it stays readable.
 
 ---
@@ -82,7 +85,7 @@ and the memory numbers.
 | RTL text | own Arabic shaping + reduced bidi in `gfx.c` | presentation forms, lam-alef, bracket pairing |
 | Rendering | one GL 3.3 quad batcher with SDF rounded rects | |
 
-Runtime deps: SDL2, libmpv, libcurl. zlib arrives with XMLTV (milestone 5).
+Runtime deps: SDL2, libmpv, libcurl, zlib (XMLTV `.gz`).
 
 ---
 
@@ -99,6 +102,8 @@ net.c/.h       worker thread, curl multi, disk cache (fresh/stale), JSON parse o
 json.c/.h      JSON parser into an arena
 xtream.c/.h    Xtream API: account, catalogs, details, EPG, stream/catch-up urls
 epg.c/.h       per-channel guide cache, now/next, guide page catalog
+m3u.c/.h       M3U playlists (url or file) into the Live catalog
+xmltv.c/.h     XMLTV parser (chunked gzip, runs on the net worker)
 img.c/.h       poster/logo textures, LRU capped at 64 MB
 store.c/.h     resume positions, favorites, recent (TSV files)
 playlist.h     Source, Item, Catalog, Playlist

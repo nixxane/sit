@@ -16,7 +16,9 @@
 #include "playlist.h"
 #include "xtream.h"
 #include "epg.h"
+#include "xmltv.h"
 
+#define XMLTTL   (4 * 3600)    /* seconds an XMLTV download stays fresh */
 #define MAXEPG   256
 #define SHORTTTL 600     /* seconds before now/next is asked again */
 #define FULLTTL  1800    /* and a whole guide */
@@ -61,6 +63,104 @@ stale(const Epg *e, long long now, int full)
 	return !e->n || e->progs[e->n - 1].stop <= now;
 }
 
+/* a channel's guide out of the parsed XMLTV; M3U channel ids are their
+ * position in the list */
+static void
+xmlfill(Epg *e)
+{
+	const Catalog *c = &e->p->cat[KindLive];
+	const Prog *src;
+	Prog *pg;
+	int i, n = 0;
+
+	e->fetched = time(NULL);
+	e->full = 1;
+	e->gen++;
+	arena_free(&e->arena);
+	e->progs = NULL;
+	e->n = 0;
+	if (e->id < 0 || e->id >= c->nitems ||
+	    !(src = xml_chan(e->p->xml->res, c->items[e->id].epgid, &n)))
+		return;
+	pg = arena_alloc(&e->arena, n * sizeof *pg);
+	for (i = 0; i < n; i++) {
+		pg[i] = src[i];
+		pg[i].title = arena_strdup(&e->arena, src[i].title);
+		pg[i].desc = arena_strdup(&e->arena, src[i].desc);
+	}
+	e->progs = pg;
+	e->n = n;
+}
+
+/* ask for the guide of an M3U source once its channels are known */
+void
+epg_xmltv(Playlist *p)
+{
+	const Catalog *c = &p->cat[KindLive];
+	char url[1100], path[1300], *ids, *w;
+	size_t len = 1, n;
+	Job *j;
+	int i;
+
+	if (!*p->guide)
+		return;
+	for (i = 0; i < c->nitems; i++)
+		len += strlen(c->items[i].epgid) + 1;
+	if (len == (size_t)c->nitems + 1)
+		return;    /* no channel has an id */
+	w = ids = xmalloc(len);
+	for (i = 0; i < c->nitems; i++) {
+		n = strlen(c->items[i].epgid);
+		if (n) {
+			memcpy(w, c->items[i].epgid, n);
+			w += n;
+			*w++ = '\n';
+		}
+	}
+	*w = '\0';
+	if (!strncmp(p->guide, "http://", 7) || !strncmp(p->guide, "https://", 8)) {
+		snprintf(url, sizeof url, "%s", p->guide);
+		snprintf(path, sizeof path, "%s/xmltv-%016llx/guide", appdir(DirCache), fnv1a(p->guide));
+		j = net_job(url, path, XMLTTL, 0);
+	} else {
+		/* curl reads files too */
+		snprintf(url, sizeof url, "file://%s%s", *p->guide == '/' ? "" : "/", p->guide);
+		for (w = url; *w; w++)
+			if (*w == '\\')
+				*w = '/';
+		j = net_job(url, NULL, 0, 0);
+	}
+	j->owner = JobXml;
+	j->work = xml_parse;
+	j->aux = ids;
+	j->ud = p;
+	net_submit(j);
+	p->xmlload++;
+}
+
+void
+epg_xml_result(Job *j)
+{
+	Playlist *p = j->ud;
+	int i;
+
+	if (!j->stale && p->xmlload > 0)
+		p->xmlload--;
+	if (!j->err[0] && j->res) {
+		net_free(p->xml);
+		p->xml = j;
+	} else {
+		net_free(j);
+	}
+	for (i = 0; i < MAXEPG; i++)
+		if (cache[i].p == p) {
+			if (p->xml)
+				xmlfill(&cache[i]);
+			else
+				cache[i].gen++;
+		}
+}
+
 /* the guide of channel id, fetched when missing or old; NULL only when
  * every slot is busy */
 Epg *
@@ -83,6 +183,12 @@ epg_want(Playlist *p, int id, int full)
 		e = old;
 	}
 	e->used = ++tick;
+	if (p->src->type == SrcM3u) {
+		if (!e->fetched && p->xml)
+			xmlfill(e);
+		e->loading = p->xmlload > 0 && !e->fetched;
+		return e;
+	}
 	if (!e->loading && stale(e, now, full)) {
 		/* once a whole guide is wanted, keep asking for the whole one */
 		xt_epg(p, id, full || e->full);

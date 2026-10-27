@@ -20,6 +20,8 @@ typedef struct {
 Epg *epg_find(const Playlist *p, int id);
 Epg *epg_want(Playlist *p, int id, int full);
 void epg_result(Job *j);
+void epg_xmltv(Playlist *p);
+void epg_xml_result(Job *j);
 const Prog *epg_now(const Epg *e, long long t, const Prog **next);
 const Prog *epg_prog(const Epg *e, long long start);
 int epg_catalog(const Epg *e, Catalog *c, int chan, int archdays, long long t);

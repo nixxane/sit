@@ -36,6 +36,11 @@ typedef struct {
 	const Source *src;
 	Catalog cat[3];       /* KindLive, KindVod, KindSeries */
 
+	/* M3U: XMLTV guide, url or file; xml holds the parsed answer */
+	char guide[1024];
+	Job *xml;
+	int xmlload;
+
 	/* Xtream account */
 	Job *auth;
 	int authok, authloading, active, maxconn;

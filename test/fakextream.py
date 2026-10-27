@@ -18,6 +18,7 @@ channel); channels with archive serve their past programmes through
 """
 import base64
 import datetime
+import gzip
 import json
 import os
 import struct
@@ -201,6 +202,31 @@ def programmes(sid):
     return out
 
 
+def m3u_files(path):
+    """/playlist.m3u (20 channels, ids tv0..tv19, the header names the guide),
+    /guide.xml and /guide.xml.gz (XMLTV with zone offsets, entities, CDATA)"""
+    if path == "/playlist.m3u":
+        out = ['#EXTM3U x-tvg-url="http://127.0.0.1:8099/guide.xml.gz"\r\n']
+        for i in range(20):
+            out.append('#EXTINF:-1 tvg-id="TV%d" tvg-logo="http://127.0.0.1:8099/img/ch%d.bmp" '
+                       'group-title="%s",Channel %d\r\nhttp://127.0.0.1:8099/live/demo/x/%d.m3u8\r\n'
+                       % (i, i, "News, Etc" if i % 2 else "Sports", i, i))
+        return "".join(out), "audio/x-mpegurl"
+    out = ['<?xml version="1.0" encoding="UTF-8"?>\n<tv>\n']
+    for i in range(20):
+        out.append('<channel id="tv%d"><display-name>Channel %d</display-name></channel>\n' % (i, i))
+        for a, b, title, desc in programmes(i):
+            out.append('<programme start="%s" stop="%s" channel="tv%d">'
+                       '<title lang="en">%s &amp; co</title><desc><![CDATA[%s]]></desc></programme>\n'
+                       % (a.astimezone().strftime("%Y%m%d%H%M%S %z"),
+                          b.astimezone().strftime("%Y%m%d%H%M%S %z"), i, title, desc))
+    out.append("</tv>\n")
+    body = "".join(out).encode()
+    if path.endswith(".gz"):
+        return gzip.compress(body), "application/gzip"
+    return body, "application/xml"
+
+
 def listing(sid, start, stop, title, desc, full):
     now = time.time()
     if sid % 5 == 0:
@@ -333,6 +359,8 @@ class Handler(BaseHTTPRequestHandler):
             if action == "get_series_info":
                 return self.send(200, json.dumps(seriesinfo(int(q.get("series_id", "0")))))
             return self.send(200, "[]")
+        if u.path in ("/playlist.m3u", "/guide.xml", "/guide.xml.gz"):
+            return self.send(200, *m3u_files(u.path))
         if u.path.startswith("/img/"):
             name = u.path[5:-4]
             seed = int("".join(c for c in name if c.isdigit()) or 0)

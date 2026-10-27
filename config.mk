@@ -8,7 +8,7 @@ PREFIX = /usr/local
 OS = linux
 
 PKG_CONFIG = pkg-config
-PKGS = sdl2 mpv libcurl
+PKGS = sdl2 mpv libcurl zlib
 
 GLLIBS_linux = -lGL
 GLLIBS_win   = -lopengl32

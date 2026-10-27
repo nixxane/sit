@@ -45,6 +45,7 @@ net_free(Job *j)
 	free(j->url);
 	free(j->cache);
 	free(j->data);
+	free(j->aux);
 	free(j->px);
 	arena_free(&j->arena);
 	free(j);
@@ -141,6 +142,7 @@ start(Job *j)
 		c->work = j->work;
 		c->w = j->w;
 		c->ud = j->ud;
+		c->aux = j->aux ? xstrdup(j->aux) : NULL;
 		c->fromcache = c->stale = 1;
 		if (loadcache(c))
 			deliver(c);
@@ -188,7 +190,7 @@ finish(CURL *e, CURLcode rc)
 	j->fromcache = j->stale = 0;
 	if (rc != CURLE_OK)
 		snprintf(j->err, sizeof j->err, "%s", curl_easy_strerror(rc));
-	else if (code != 200)
+	else if (code != 200 && strncmp(j->url, "file:", 5))
 		snprintf(j->err, sizeof j->err, "server answered HTTP %ld", code);
 	else if (!j->data)
 		snprintf(j->err, sizeof j->err, "empty response");

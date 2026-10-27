@@ -17,23 +17,26 @@ Working rules for agents are in `AGENTS.md`.
 | 1 | Skeleton: SDL/GL window, text, lists, libmpv in-window | **done** |
 | 2 | Xtream live: login, categories, channels, account in status bar, disk cache | **done**, confirmed on a real provider |
 | 3 | Xtream movies + series: poster grid, details, episodes, resume | **done**, confirmed on a real provider |
-| – | Pulled forward from 6: search, favorites, recent, Arabic/Hebrew | **done** |
+| – | Pulled forward from 6: search, favorites, recent, Arabic/Hebrew | **done**, confirmed on a real provider |
 | – | Memory: slim catalogs, capped poster cache, smaller mpv buffers | **done** |
-| 4 | EPG: now/next, guide page, catch-up | **done** (Xtream only; XMLTV moved to 5) |
+| 4 | EPG: now/next, guide page, catch-up | **done** (Xtream only; XMLTV moved to 5); EPG + catch-up confirmed on a real provider |
 | 5 | M3U playlists + XMLTV guide | **done** (`m3u.c`, `xmltv.c`); tested against the fake server, programmes confirmed reaching channels, not yet looked at in the UI or tried on a real provider |
 | 6 | Polish: bundled font, light theme, man page, CJK, number entry | not started |
-| 7 | Ports and releases | not started; Linux build **never tried** |
+| 7 | Ports and releases | not started; Linux build **verified** (builds + runs; *BSD, macOS, Windows zip still open) |
 
 Everything above was tested against `test/fakextream.py`; milestones 2 and 3
-were also confirmed by the owner on a real provider. **Not yet confirmed on a
-real provider:** the EPG/catch-up of milestone 4 (catch-up time format and URL
-style vary between panels), search/favorites/recent, the Arabic rendering,
-and the memory numbers.
+were also confirmed by the owner on a real provider, as were the EPG,
+catch-up, search, favorites, recent and Arabic rendering (the `timeshift/` URL
+format as built plays correctly, so no `timeshift.php` fallback was needed).
+Only the memory numbers remain to be re-measured on the owner's real lists
+(deferred).
 
 ### Open items, roughly in order
-1. Owner to try EPG and catch-up on their provider; fix the timeshift time
-   format or switch to `timeshift.php` if replays start at the wrong time.
-2. Linux build (WSL is available on the dev machine) before the repo goes public.
+1. ~~Owner to try EPG and catch-up; fix the timeshift format~~ — **done**:
+   catch-up plays correctly on the owner's provider, so the `timeshift/` URL
+   format as built is right (no `timeshift.php` needed).
+2. ~~Linux build before the repo goes public~~ — **done**: `make` builds warning-free
+   and the binary runs on Linux (needs the dev packages, including `libgl-dev`).
 3. Look at an M3U source in the UI and try it on a real playlist. Sources
    line: `name<TAB>m3u<TAB>url-or-file[<TAB>xmltv-url-or-file]`; without the
    fourth field the guide comes from `x-tvg-url` / `url-tvg` in the

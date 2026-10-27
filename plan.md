@@ -22,7 +22,7 @@ Working rules for agents are in `AGENTS.md`.
 | 4 | EPG: now/next, guide page, catch-up | **done** (Xtream only; XMLTV moved to 5); EPG + catch-up confirmed on a real provider |
 | 5 | M3U playlists + XMLTV guide | **done** (`m3u.c`, `xmltv.c`); tested against the fake server, programmes confirmed reaching channels, not yet looked at in the UI or tried on a real provider |
 | 6 | Polish: bundled font, light theme, man page, number entry, Thai | **done** (CJK deferred) |
-| 7 | Ports and releases | not started; Linux build **verified** (builds + runs; *BSD, macOS, Windows zip still open) |
+| 7 | Ports and releases | in progress: `make install` bundles the font; CI builds Ubuntu/macOS/Windows/FreeBSD + a Windows zip (first CI run pending) |
 
 Everything above was tested against `test/fakextream.py`; milestones 2 and 3
 were also confirmed by the owner on a real provider, as were the EPG,
@@ -198,9 +198,10 @@ cache:   ~/.cache/sit/xt-<hash>/...        JSON per action; img/<hash> posters
 
 Milestones 1–6 are done. What remains:
 
-7. **Ports and releases** — *BSD and macOS builds, a Windows zip with the
-   DLLs, and installing the bundled font with `make install` (today it is
-   only found when run from the source tree).
+7. **Ports and releases** — `make install` now bundles the font, and a CI
+   workflow (`.github/workflows/build.yml`) builds on Ubuntu, macOS, Windows
+   (with a DLL zip artifact) and FreeBSD. First CI run pending; macOS/BSD
+   may need small tweaks (zlib `.pc`, pkg-config, GL).
 
 Each milestone ends with: warning-free build, tested against the fake
 server (extend it for new features), §0 updated.

@@ -3,6 +3,7 @@
 /* fonts: the first file that exists wins */
 static const char *fonts[] = {
 	"vendor/DejaVuSans.ttf",
+	"/usr/local/share/sit/fonts/DejaVuSans.ttf",  /* make install (matches PREFIX in config.mk) */
 	"C:/Windows/Fonts/segoeui.ttf",
 	"/usr/share/fonts/TTF/DejaVuSans.ttf",
 	"/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
@@ -12,6 +13,7 @@ static const char *fonts[] = {
 };
 static const char *boldfonts[] = {
 	"vendor/DejaVuSans-Bold.ttf",
+	"/usr/local/share/sit/fonts/DejaVuSans-Bold.ttf",  /* make install (matches PREFIX in config.mk) */
 	"C:/Windows/Fonts/seguisb.ttf",
 	"/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
 	"/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",

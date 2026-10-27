@@ -31,9 +31,16 @@ install: all
 	mkdir -p ${DESTDIR}${PREFIX}/share/man/man1
 	cp -f sit.1 ${DESTDIR}${PREFIX}/share/man/man1
 	chmod 644 ${DESTDIR}${PREFIX}/share/man/man1/sit.1
+	mkdir -p ${DESTDIR}${PREFIX}/share/sit/fonts
+	cp -f vendor/DejaVuSans.ttf ${DESTDIR}${PREFIX}/share/sit/fonts
+	cp -f vendor/DejaVuSans-Bold.ttf ${DESTDIR}${PREFIX}/share/sit/fonts
+	chmod 644 ${DESTDIR}${PREFIX}/share/sit/fonts/DejaVuSans.ttf
+	chmod 644 ${DESTDIR}${PREFIX}/share/sit/fonts/DejaVuSans-Bold.ttf
 
 uninstall:
 	rm -f ${DESTDIR}${PREFIX}/bin/sit
 	rm -f ${DESTDIR}${PREFIX}/share/man/man1/sit.1
+	rm -f ${DESTDIR}${PREFIX}/share/sit/fonts/DejaVuSans.ttf
+	rm -f ${DESTDIR}${PREFIX}/share/sit/fonts/DejaVuSans-Bold.ttf
 
 .PHONY: all clean install uninstall

@@ -12,7 +12,8 @@ SDL2, libmpv, libcurl and an OpenGL 3.3 driver.
 
 Debian, Ubuntu:
 
-    apt install build-essential pkg-config libsdl2-dev libmpv-dev libcurl4-openssl-dev
+    apt install build-essential pkg-config \
+                libsdl2-dev libmpv-dev libcurl4-openssl-dev
 
 Arch:
 

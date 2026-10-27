@@ -28,8 +28,12 @@ install: all
 	mkdir -p ${DESTDIR}${PREFIX}/bin
 	cp -f sit ${DESTDIR}${PREFIX}/bin
 	chmod 755 ${DESTDIR}${PREFIX}/bin/sit
+	mkdir -p ${DESTDIR}${PREFIX}/share/man/man1
+	cp -f sit.1 ${DESTDIR}${PREFIX}/share/man/man1
+	chmod 644 ${DESTDIR}${PREFIX}/share/man/man1/sit.1
 
 uninstall:
 	rm -f ${DESTDIR}${PREFIX}/bin/sit
+	rm -f ${DESTDIR}${PREFIX}/share/man/man1/sit.1
 
 .PHONY: all clean install uninstall

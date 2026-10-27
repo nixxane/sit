@@ -1,0 +1,235 @@
+.TH SIT 1 "2026-10-27" "sit 0.1" "General Commands Manual"
+.SH NAME
+sit \- suckless IPTV player
+.SH SYNOPSIS
+.B sit
+.RB [ \-v ]
+.RB [ \-s
+.IR sources ]
+.RI [ url ...]
+.SH DESCRIPTION
+.B sit
+lists the live channels, movies and series of an Xtream Codes account,
+reads M3U playlists and XMLTV guides, and plays everything through libmpv
+in one window. It shows now/next programme information, a guide page with
+catch-up, and remembers favorites, recently watched items and resume
+positions. Configuration is compiled in; see
+.BR CONFIGURATION .
+.PP
+Without sources it shows a few public test streams. Source files are
+tab-separated; see
+.BR SOURCES .
+.SH OPTIONS
+.TP
+.B \-v
+Print the version and exit.
+.TP
+.BI \-s " sources"
+Read sources from
+.I sources
+instead of the default file.
+A missing or unreadable file is an error.
+.TP
+.I url ...
+Add the URLs as a source named
+.RB \(lq Command line \(rq.
+Each URL is listed as a channel.
+.SH SOURCES
+One source per line, fields separated by tabs.
+Blank lines and lines starting with
+.B #
+are ignored.
+A UTF-8 byte-order mark is accepted.
+.PP
+Xtream Codes:
+.RS
+.nf
+name	xtream	url	user	pass
+.fi
+.RE
+.PP
+M3U playlist, URL or local file:
+.RS
+.nf
+name	m3u	url-or-file	[xmltv-url-or-file]
+.fi
+.RE
+.PP
+The optional fourth field is an XMLTV guide, URL or file (plain or
+.BR .gz ).
+Without it the guide URL is taken from
+.B x-tvg-url
+or
+.B url-tvg
+in the
+.B #EXTM3U
+header.
+.PP
+Public test streams:
+.RS
+.nf
+name	demo
+.fi
+.RE
+.PP
+The default sources file is
+.I ~/.config/sit/sources
+on Unix and
+.I %APPDATA%\(rssit\(rssources
+on Windows.
+If it does not exist,
+.I sources.txt
+in the same directory is tried as well.
+Without such a file, the
+.B sources[]
+table in
+.I config.h
+is used.
+Lines that do not match the formats above are skipped with a warning.
+.SH KEYS
+.TP
+.B Enter
+Play the selection; pressed again on what is playing, switch to full view.
+.TP
+.B Esc, Backspace
+Back.
+.TP
+.B Up, Down
+Move the selection; in the player, previous/next channel.
+.TP
+.B k, j
+Move the selection up or down.
+.TP
+.B Left, Right
+Switch panes; in the player, seek back or forward 10 seconds.
+.TP
+.B h, l
+Switch panes.
+.TP
+.B Shift+Left, Shift+Right
+Seek back or forward 60 seconds.
+.TP
+.B PageUp, PageDown
+Move one page.
+.TP
+.B Home, g
+Jump to the top.
+.TP
+.B End, Shift+g
+Jump to the bottom.
+.TP
+.B Tab
+Next tab: Live, Movies, Series, Favorites, Recent.
+.TP
+.B Shift+Tab
+Previous tab.
+.TP
+.B /, Ctrl+f
+Search.
+.TP
+.B 0\-9
+Tune to a channel by its number; type the number and press Enter. Esc cancels.
+.TP
+.B f
+Toggle favorite.
+.TP
+.B e
+Guide for a channel; on the guide, Enter on a past programme plays its
+recording.
+.TP
+.B Space
+Pause.
+.TP
+.B [, ]
+Previous or next channel.
+.TP
+.B a, s
+Cycle audio or subtitle track.
+.TP
+.B -, =, m
+Volume down, volume up, mute.
+.TP
+.B r
+Refresh the list.
+.TP
+.B Alt+1..9
+Switch source.
+.TP
+.B F11, Shift+f
+Toggle fullscreen.
+.TP
+.B x
+Stop playback.
+.TP
+.B q
+Quit.
+.SH FILES
+.TP
+.I ~/.config/sit/sources
+Providers, also read as
+.I sources.txt
+if absent.
+.TP
+.I ~/.cache/sit/
+Lists, guides and posters.
+Safe to delete.
+.TP
+.I ~/.local/share/sit/
+Resume positions, favorites and recent.
+.PP
+On Windows the sources file is
+.I %APPDATA%\(rssit\(rssources
+(or
+.IR sources.txt ),
+the cache is
+.IR %LOCALAPPDATA%\(rssit ,
+and resume, favorites and recent are in
+.IR %APPDATA%\(rssit .
+.PP
+The
+.BR XDG_CONFIG_HOME ,
+.B XDG_CACHE_HOME
+and
+.B XDG_DATA_HOME
+environment variables override the corresponding Unix locations.
+.SH CONFIGURATION
+Edit
+.I config.h
+and recompile.
+The first build copies
+.I config.def.h
+to
+.IR config.h ;
+delete
+.I config.h
+to restore the defaults.
+Fonts, colours, sizes, keys, mpv options, cache times and compiled-in
+sources live there.
+.RS
+.nf
+make
+make install
+.fi
+.RE
+.SH REQUIREMENTS
+SDL2, libmpv, libcurl, zlib and an OpenGL 3.3 driver.
+.PP
+Debian, Ubuntu:
+.RS
+.nf
+apt install build-essential pkg-config \(rs
+            libsdl2-dev libmpv-dev libcurl4-openssl-dev libgl-dev zlib1g-dev
+.fi
+.RE
+.PP
+Arch:
+.RS
+.nf
+pacman -S base-devel sdl2 mpv curl
+.fi
+.RE
+.PP
+Other systems need a C compiler, make, pkg-config and the development
+packages of SDL2, libmpv and libcurl.
+.SH SEE ALSO
+.BR mpv (1)

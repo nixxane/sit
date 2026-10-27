@@ -16,7 +16,7 @@
 
 #define MAXFONTS 8
 #define MAXVTX   (6 * 8192)
-#define NRANGE   (95 + 96 + 128 + 144 + 256 + 112 + 256 + 176 + 144)
+#define NRANGE   (95 + 96 + 128 + 144 + 256 + 112 + 256 + 128 + 176 + 144)
 #define NEXTRA   13
 #define NGLYPHS  (NRANGE + NEXTRA)
 #define MAXFB    4
@@ -77,7 +77,7 @@ typedef struct {
  * its presentation forms (what shaping turns letters into) */
 static const struct { int first, n; } ranges[] = {
 	{ 0x20, 95 }, { 0xa0, 96 }, { 0x100, 128 }, { 0x370, 144 }, { 0x400, 256 },
-	{ 0x590, 112 }, { 0x600, 256 }, { 0xfb50, 176 }, { 0xfe70, 144 },
+	{ 0x590, 112 }, { 0x600, 256 }, { 0xe00, 128 }, { 0xfb50, 176 }, { 0xfe70, 144 },
 };
 
 /* punctuation, arrows and the star the UI uses */

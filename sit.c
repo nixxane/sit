@@ -61,6 +61,7 @@ static void jump(const Arg *a);
 static void kind(const Arg *a);
 static void move(const Arg *a);
 static void mute(const Arg *a);
+static void number(const Arg *a);
 static void page(const Arg *a);
 static void play(const Arg *a);
 static void quit(const Arg *a);
@@ -122,6 +123,10 @@ static Catalog found;
 static List slist;
 static Rect searchr;
 
+/* channel number entry, like a TV remote */
+static int numbering;
+static char numberbuf[8];
+
 /* movie details, fetched when the selection rests on one */
 typedef struct {
 	const Playlist *p;
@@ -148,7 +153,7 @@ static char osdmsg[128];
 static Color
 col(int c, float a)
 {
-	return rgba(colors[c], a);
+	return rgba(colors[theme][c], a);
 }
 
 static void
@@ -1304,6 +1309,80 @@ searchkey(const SDL_Keysym *k)
 	}
 }
 
+static int
+digitkey(SDL_Keycode sym)
+{
+	if (sym >= SDLK_0 && sym <= SDLK_9)
+		return sym - SDLK_0;
+	if (sym >= SDLK_KP_0 && sym <= SDLK_KP_9)
+		return sym - SDLK_KP_0;
+	return -1;
+}
+
+/* a digit from keys[]: start number entry on Live, or append to it */
+static void
+number(const Arg *a)
+{
+	if (a->i < 0 || a->i > 9)
+		return;
+	if (!numbering) {
+		if (view != ViewBrowse || tab != PageLive || inseries || inguide || searching)
+			return;
+		numbering = 1;
+		numberbuf[0] = '\0';
+	}
+	if (strlen(numberbuf) >= 4)
+		return;
+	append(numberbuf, sizeof numberbuf, "%d", a->i);
+}
+
+/* tune the number typed so far; out of range just cancels */
+static void
+tune(void)
+{
+	Catalog *c = catalog();
+	int n = atoi(numberbuf);
+
+	numbering = 0;
+	numberbuf[0] = '\0';
+	if (n < 1 || n > nvis) {
+		osd("No channel %d", n);
+		return;
+	}
+	pane = 1;
+	clist.sel = n - 1;
+	clist.follow = 1;
+	playitem(&c->items[vis[clist.sel]]);
+}
+
+/* keys that steer number entry; digits append through number() */
+static void
+numberkey(const SDL_Keysym *k)
+{
+	size_t n = strlen(numberbuf);
+	int d = digitkey(k->sym);
+
+	if (d >= 0) {
+		number(&(Arg){ .i = d });
+		return;
+	}
+	switch (k->sym) {
+	case SDLK_ESCAPE:
+		numbering = 0;
+		break;
+	case SDLK_BACKSPACE:
+		if (n > 0)
+			numberbuf[n - 1] = '\0';
+		if (!numberbuf[0])
+			numbering = 0;
+		break;
+	case SDLK_RETURN:
+	case SDLK_KP_ENTER:
+		tune();
+		break;
+	}
+}
+
 static const char *
 status(int *c)
 {
@@ -2141,6 +2220,22 @@ drawsearch(void)
 	return anim;
 }
 
+/* channel number entry: a small prompt over the bottom of the list */
+static void
+drawnumber(void)
+{
+	char buf[32];
+	float h = 36 * S, w;
+	Rect r;
+
+	snprintf(buf, sizeof buf, "Channel %s", numberbuf);
+	w = gfx_textw(FontText, buf) + 28 * S;
+	r = (Rect){ clr.x + clr.w - w - 16 * S, clr.y + clr.h - h - 10 * S, w, h };
+	gfx_rect(r, col(ColPanel, 1), radius * S);
+	gfx_rect((Rect){ r.x, r.y, 3 * S, r.h }, col(ColAccent, 1), 1.5f * S);
+	gfx_text(FontText, r.x + 14 * S, mid(FontText, r.y, r.h), buf, col(ColFg, 1), 0);
+}
+
 static void
 layout(void)
 {
@@ -2211,6 +2306,8 @@ drawbrowse(void)
 	gfx_rect((Rect){ 0, y, W, 40 * S }, col(ColPanel, 1), 0);
 	x = drawaccount((Rect){ p, y, W - 2 * p, 40 * S });
 	drawhints((Rect){ p, y, W - 2 * p - x - 24 * S, 40 * S });
+	if (numbering)
+		drawnumber();
 	if (searching)
 		anim |= drawsearch();
 	return anim;
@@ -2389,6 +2486,8 @@ click(int clicks)
 		}
 		return;
 	}
+	if (numbering)
+		numbering = 0;
 	for (k = 0; k < (int)LEN(tabr); k++)
 		if (tabr[k].w && inrect(tabr[k], mx, my)) {
 			settab(k);
@@ -2449,6 +2548,10 @@ handle(SDL_Event *e)
 		lastinput = now();
 		if (searching) {
 			searchkey(&e->key.keysym);
+			break;
+		}
+		if (numbering) {
+			numberkey(&e->key.keysym);
 			break;
 		}
 		m = cleanmod(e->key.keysym.mod);

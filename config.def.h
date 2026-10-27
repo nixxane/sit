@@ -2,6 +2,7 @@
 
 /* fonts: the first file that exists wins */
 static const char *fonts[] = {
+	"vendor/DejaVuSans.ttf",
 	"C:/Windows/Fonts/segoeui.ttf",
 	"/usr/share/fonts/TTF/DejaVuSans.ttf",
 	"/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
@@ -10,6 +11,7 @@ static const char *fonts[] = {
 	"/System/Library/Fonts/Supplemental/Arial.ttf",
 };
 static const char *boldfonts[] = {
+	"vendor/DejaVuSans-Bold.ttf",
 	"C:/Windows/Fonts/seguisb.ttf",
 	"/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
 	"/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
@@ -43,16 +45,31 @@ static const float sidebarw  = 220;
 static const float previewf  = 0.42;  /* share of the main area for the preview */
 static const float hidedelay = 2.5;   /* seconds until the player overlay fades */
 
-static const unsigned int colors[] = {
-	[ColBg]     = 0x1e1e2e,
-	[ColPanel]  = 0x181825,
-	[ColFg]     = 0xcdd6f4,
-	[ColDim]    = 0x7f849c,
-	[ColAccent] = 0x89b4fa,
-	[ColSel]    = 0x313244,
-	[ColLive]   = 0xf38ba8,
-	[ColGood]   = 0xa6e3a1,
+static const unsigned int colors[2][ColLast] = {
+	/* dark (Catppuccin Mocha) */
+	[0] = {
+		[ColBg]     = 0x1e1e2e,
+		[ColPanel]  = 0x181825,
+		[ColFg]     = 0xcdd6f4,
+		[ColDim]    = 0x7f849c,
+		[ColAccent] = 0x89b4fa,
+		[ColSel]    = 0x313244,
+		[ColLive]   = 0xf38ba8,
+		[ColGood]   = 0xa6e3a1,
+	},
+	/* light (Catppuccin Latte) */
+	[1] = {
+		[ColBg]     = 0xeff1f5,
+		[ColPanel]  = 0xe6e9ef,
+		[ColFg]     = 0x4c4f69,
+		[ColDim]    = 0x6c6f85,
+		[ColAccent] = 0x1e66f5,
+		[ColSel]    = 0xccd0da,
+		[ColLive]   = 0xd20f39,
+		[ColGood]   = 0x40a02b,
+	},
 };
+static const int theme = 0;    /* 0 dark, 1 light */
 
 static const char *mpvopts[][2] = {
 	{ "hwdec",             "auto-safe" },
@@ -122,6 +139,26 @@ static const Key keys[] = {
 	{ VB,   KMOD_ALT,   SDLK_7,            source,      { .i = 6 } },
 	{ VB,   KMOD_ALT,   SDLK_8,            source,      { .i = 7 } },
 	{ VB,   KMOD_ALT,   SDLK_9,            source,      { .i = 8 } },
+	{ VB,   0,          SDLK_0,            number,      { .i = 0 } },
+	{ VB,   0,          SDLK_1,            number,      { .i = 1 } },
+	{ VB,   0,          SDLK_2,            number,      { .i = 2 } },
+	{ VB,   0,          SDLK_3,            number,      { .i = 3 } },
+	{ VB,   0,          SDLK_4,            number,      { .i = 4 } },
+	{ VB,   0,          SDLK_5,            number,      { .i = 5 } },
+	{ VB,   0,          SDLK_6,            number,      { .i = 6 } },
+	{ VB,   0,          SDLK_7,            number,      { .i = 7 } },
+	{ VB,   0,          SDLK_8,            number,      { .i = 8 } },
+	{ VB,   0,          SDLK_9,            number,      { .i = 9 } },
+	{ VB,   0,          SDLK_KP_0,         number,      { .i = 0 } },
+	{ VB,   0,          SDLK_KP_1,         number,      { .i = 1 } },
+	{ VB,   0,          SDLK_KP_2,         number,      { .i = 2 } },
+	{ VB,   0,          SDLK_KP_3,         number,      { .i = 3 } },
+	{ VB,   0,          SDLK_KP_4,         number,      { .i = 4 } },
+	{ VB,   0,          SDLK_KP_5,         number,      { .i = 5 } },
+	{ VB,   0,          SDLK_KP_6,         number,      { .i = 6 } },
+	{ VB,   0,          SDLK_KP_7,         number,      { .i = 7 } },
+	{ VB,   0,          SDLK_KP_8,         number,      { .i = 8 } },
+	{ VB,   0,          SDLK_KP_9,         number,      { .i = 9 } },
 	{ VB,   0,          SDLK_RETURN,       play,        { 0 } },
 	{ VB,   0,          SDLK_KP_ENTER,     play,        { 0 } },
 	{ VP,   0,          SDLK_UP,           zap,         { .i = -1 } },

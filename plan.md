@@ -21,7 +21,7 @@ Working rules for agents are in `AGENTS.md`.
 | – | Memory: slim catalogs, capped poster cache, smaller mpv buffers | **done** |
 | 4 | EPG: now/next, guide page, catch-up | **done** (Xtream only; XMLTV moved to 5); EPG + catch-up confirmed on a real provider |
 | 5 | M3U playlists + XMLTV guide | **done** (`m3u.c`, `xmltv.c`); tested against the fake server, programmes confirmed reaching channels, not yet looked at in the UI or tried on a real provider |
-| 6 | Polish: bundled font, light theme, man page, CJK, number entry | not started |
+| 6 | Polish: bundled font, light theme, man page, number entry, Thai | **done** (CJK deferred) |
 | 7 | Ports and releases | not started; Linux build **verified** (builds + runs; *BSD, macOS, Windows zip still open) |
 
 Everything above was tested against `test/fakextream.py`; milestones 2 and 3
@@ -46,7 +46,9 @@ Only the memory numbers remain to be re-measured on the owner's real lists
    catch-up from XMLTV; `r` does not force a new guide download (4 h
    cache); XMLTV channels match `tvg-id` only (case-insensitive), not
    `tvg-name`.
-4. Milestone 6 items; CJK/Thai still render as `?`.
+4. ~~Milestone 6~~ — **done**: bundled DejaVu (Thai now renders), light theme
+   (`theme` in config.h), `sit.1` man page, channel number entry. CJK still
+   renders as `?` (deferred — full CJK would need a large font and atlas).
 5. Code size is ~6,500 non-blank lines without vendor (target was 5,000). `sit.c` is
    ~2,450 of them; splitting pages out of it is fair game if it stays readable.
 
@@ -194,13 +196,11 @@ cache:   ~/.cache/sit/xt-<hash>/...        JSON per action; img/<hash> posters
 
 ## 8. Remaining milestones
 
-5. **M3U + XMLTV** — `#EXTINF` (`tvg-id`, `tvg-name`, `tvg-logo`,
-   `group-title`, `tvg-chno`, `catchup*`), URL or file, as a `m3u` source
-   type in the sources file. XMLTV streaming parser (no libxml2), `.xml.gz`
-   via zlib, matched by `tvg-id`; feeds the same `Epg` structures.
-6. **Polish** — bundled default font, light theme, man page `sit.1`,
-   CJK/Thai glyphs, channel number entry, maybe an EPG grid.
-7. **Ports** — Linux and *BSD builds verified, macOS, Windows zip with DLLs.
+Milestones 1–6 are done. What remains:
+
+7. **Ports and releases** — *BSD and macOS builds, a Windows zip with the
+   DLLs, and installing the bundled font with `make install` (today it is
+   only found when run from the source tree).
 
 Each milestone ends with: warning-free build, tested against the fake
 server (extend it for new features), §0 updated.

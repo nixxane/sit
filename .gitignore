@@ -1,0 +1,4 @@
+*.o
+sit
+sit.exe
+config.h

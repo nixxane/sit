@@ -1,0 +1,101 @@
+sit - suckless iptv
+===================
+sit is a small IPTV player. It lists the live channels, movies and series
+of an Xtream Codes account, shows the programme guide, and plays
+everything through libmpv in one window. It is configured by editing
+config.h and recompiling.
+
+
+Requirements
+------------
+SDL2, libmpv, libcurl and an OpenGL 3.3 driver.
+
+Debian, Ubuntu:
+
+    apt install build-essential pkg-config libsdl2-dev libmpv-dev libcurl4-openssl-dev
+
+Arch:
+
+    pacman -S base-devel sdl2 mpv curl
+
+Other distributions: a C compiler, make, pkg-config and the development
+packages of SDL2, libmpv and libcurl.
+
+Windows: install MSYS2 (https://www.msys2.org) and, in its UCRT64 shell:
+
+    pacman -S make mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-pkgconf \
+              mingw-w64-ucrt-x86_64-SDL2 mingw-w64-ucrt-x86_64-mpv
+
+
+Installation
+------------
+Edit config.mk to match your setup (sit is installed into /usr/local by
+default), then, on Linux:
+
+    make
+    make install    (as root)
+
+On Windows, in the UCRT64 shell:
+
+    make OS=win
+
+
+Running sit
+-----------
+    sit [-v] [-s sources] [url ...]
+
+On Windows, start it from the UCRT64 shell (./sit.exe), or put
+C:\msys64\ucrt64\bin on PATH, or copy the DLLs it needs next to it:
+
+    ldd sit.exe | awk '/ucrt64/ { print $3 }' | xargs -I{} cp {} .
+
+Without sources sit shows a few public test streams. URLs given on the
+command line are listed as a source of their own.
+
+
+Sources
+-------
+One line per provider, fields separated by tabs:
+
+    Home	xtream	http://provider.example:8080	username	password
+
+in ~/.config/sit/sources (Windows: %APPDATA%\sit\sources), or in a file
+given with -s. Without such a file, sources[] in config.h is used.
+
+
+Keys
+----
+    Enter       play; on what plays: full view
+    Esc         back
+    up, down    move (also k, j)
+    left, right switch panes (also h, l); in full view: seek
+    Tab         Live, Movies, Series, Favorites, Recent
+    /           search
+    f           favorite
+    e           guide; Enter on a past programme plays its recording
+    Space       pause
+    [ ]         previous, next channel
+    a s         audio, subtitle track
+    - = m       volume down, up, mute
+    r           refresh the list
+    Alt+1..9    switch source
+    F11         fullscreen
+    q           quit
+
+
+Configuration
+-------------
+The configuration of sit is done by creating a custom config.h and
+(re)compiling the source code. make creates config.h from config.def.h
+on the first build. Fonts, colours, sizes, keys, mpv options and cache
+times are there.
+
+
+Files
+-----
+    ~/.config/sit/sources       providers
+    ~/.cache/sit/               lists, guides and posters; safe to delete
+    ~/.local/share/sit/         resume positions, favorites, recent
+
+On Windows the first is %APPDATA%\sit, the cache %LOCALAPPDATA%\sit and
+the rest %APPDATA%\sit.

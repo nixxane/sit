@@ -1280,6 +1280,16 @@ searchkey(const SDL_Keysym *k)
 {
 	size_t n = strlen(query);
 
+	if (k->sym == SDLK_v && (k->mod & KMOD_CTRL)) {
+		char *t = SDL_GetClipboardText();
+		if (t) {
+			n = strlen(query);
+			snprintf(query + n, sizeof query - n, "%s", t);
+			SDL_free(t);
+			runsearch();
+		}
+		return;
+	}
 	switch (k->sym) {
 	case SDLK_ESCAPE:
 		closesearch();
@@ -2861,6 +2871,14 @@ obsave(void)
 static void
 obkey(const SDL_Keysym *k)
 {
+	if (k->sym == SDLK_v && (k->mod & KMOD_CTRL)) {
+		char *t = SDL_GetClipboardText();
+		if (t) {
+			obtext(t);
+			SDL_free(t);
+		}
+		return;
+	}
 	switch (k->sym) {
 	case SDLK_ESCAPE:
 		if (nsrcs) {

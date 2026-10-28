@@ -50,11 +50,11 @@ jobs:
       - name: package
         shell: msys2 {0}
         run: |
-          mkdir -p dist
-          cp sit.exe dist/
-          ldd sit.exe | awk '/ucrt64/ { print $3 }' | xargs -I{} cp {} dist/
-          cp -r vendor dist/
-          cd dist && zip -r ../sit-windows.zip .
+          mkdir -p app
+          cp sit.exe app/
+          ldd sit.exe | awk '/ucrt64/ { print $3 }' | xargs -I{} cp {} app/
+          cp -r vendor app/
+          zip -r sit-windows.zip app
       - uses: actions/upload-artifact@v4
         with:
           name: sit-windows
@@ -83,6 +83,7 @@ jobs:
       - name: publish release
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: gh release create "$GITHUB_REF_NAME" sit-windows.zip --generate-notes --title "sit $GITHUB_REF_NAME"
 
   latest:
@@ -96,6 +97,7 @@ jobs:
       - name: publish latest
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           gh release delete latest --yes --cleanup-tag 2>/dev/null || true
           gh release create latest sit-windows.zip --prerelease --title "Latest build" --notes "Automatic build of $GITHUB_SHA."

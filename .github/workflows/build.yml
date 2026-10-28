@@ -4,6 +4,9 @@ on:
   push:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   ubuntu:
     runs-on: ubuntu-latest
@@ -36,6 +39,7 @@ jobs:
             mingw-w64-ucrt-x86_64-gcc
             mingw-w64-ucrt-x86_64-pkgconf
             make
+            zip
             mingw-w64-ucrt-x86_64-SDL2
             mingw-w64-ucrt-x86_64-mpv
             mingw-w64-ucrt-x86_64-curl
@@ -50,10 +54,11 @@ jobs:
           cp sit.exe dist/
           ldd sit.exe | awk '/ucrt64/ { print $3 }' | xargs -I{} cp {} dist/
           cp -r vendor dist/
+          cd dist && zip -r ../sit-windows.zip .
       - uses: actions/upload-artifact@v4
         with:
           name: sit-windows
-          path: dist/
+          path: sit-windows.zip
 
   freebsd:
     runs-on: ubuntu-latest
@@ -66,3 +71,31 @@ jobs:
           run: |
             pkg install -y gmake pkgconf sdl2 mpv curl mesa-libs
             gmake CC=cc
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: windows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: sit-windows
+      - name: publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" sit-windows.zip --generate-notes --title "sit $GITHUB_REF_NAME"
+
+  latest:
+    if: github.ref == 'refs/heads/main'
+    needs: windows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: sit-windows
+      - name: publish latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --yes --cleanup-tag 2>/dev/null || true
+          gh release create latest sit-windows.zip --prerelease --title "Latest build" --notes "Automatic build of $GITHUB_SHA."

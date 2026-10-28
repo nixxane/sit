@@ -23,6 +23,7 @@ Working rules for agents are in `AGENTS.md`.
 | 5 | M3U playlists + XMLTV guide | **done** (`m3u.c`, `xmltv.c`); tested against the fake server, programmes confirmed reaching channels, not yet looked at in the UI or tried on a real provider |
 | 6 | Polish: bundled font, light theme, man page, number entry, Thai | **done** (CJK deferred) |
 | 7 | Ports and releases | **done**: CI green on Ubuntu/macOS/Windows/FreeBSD + Windows zip; `make install` bundles the font; v0.1 released |
+| 8 | Onboarding: first-run source form (writes the sources file) | **done** (code + review); owner UI test pending |
 
 Everything above was tested against `test/fakextream.py`; milestones 2 and 3
 were also confirmed by the owner on a real provider, as were the EPG,
@@ -196,9 +197,14 @@ cache:   ~/.cache/sit/xt-<hash>/...        JSON per action; img/<hash> posters
 
 ## 8. Remaining milestones
 
-All milestones (1–7) are done. Optional follow-ups, none blocking: code-sign
-the Windows exe (SmartScreen), make the repo public, cut future releases,
-CJK glyphs, and re-measuring the memory numbers.
+8. **Onboarding** — done (code + review): a first-run screen that adds an
+   Xtream or M3U source to the sources file (name, type, url, user, pass,
+   xmltv url) so it need not be hand-edited. Writes the same plain-text TSV;
+   keyboard-first; Esc skips to the demo. Owner UI test pending.
+
+Optional follow-ups, none blocking: code-sign the Windows exe (SmartScreen),
+make the repo public, cut future releases, CJK glyphs, and re-measuring the
+memory numbers.
 
 Each milestone ends with: warning-free build, tested against the fake
 server (extend it for new features), §0 updated.

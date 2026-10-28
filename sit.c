@@ -5,6 +5,7 @@
  * libmpv's OpenGL renderer. Keys, colours and sources live in config.h.
  */
 #include <ctype.h>
+#include <fcntl.h>
 #include <locale.h>
 #include <math.h>
 #include <stdarg.h>
@@ -53,6 +54,7 @@ typedef struct {
 
 static void back(const Arg *a);
 static void cycle(const Arg *a);
+static int drawonboarding(void);
 static void favorite(const Arg *a);
 static void focus(const Arg *a);
 static void fullscreen(const Arg *a);
@@ -62,6 +64,8 @@ static void kind(const Arg *a);
 static void move(const Arg *a);
 static void mute(const Arg *a);
 static void number(const Arg *a);
+static void obkey(const SDL_Keysym *k);
+static void obtext(const char *s);
 static void page(const Arg *a);
 static void play(const Arg *a);
 static void quit(const Arg *a);
@@ -126,6 +130,11 @@ static Rect searchr;
 /* channel number entry, like a TV remote */
 static int numbering;
 static char numberbuf[8];
+
+/* first-run onboarding: one source, appended to the sources file */
+enum { ObName, ObType, ObUrl, ObUser, ObPass, ObXml, ObFieldLast };
+static int onboarding, obfield, obtype;
+static char obname[256], oburl[1024], obuser[256], obpass[256], obxml[1024];
 
 /* movie details, fetched when the selection rests on one */
 typedef struct {
@@ -2421,20 +2430,22 @@ draw(void)
 	t = now();
 	nextwake = 0;
 	img_tick();
-	freshmarks();
-	freshguide();
-	if (view == ViewPlayer && playsrc < 0)
-		view = ViewBrowse;
-	if ((id = selid()) != lastsel || PG != lastpg) {
-		lastsel = id;
-		lastpg = PG;
-		selt = t;
-	}
-	if (!inguide && hasguide(P) && (it = focused()) && it->kind == KindLive) {
-		if (t - selt > 0.3)
-			epg_want(P, it->id, 0);
-		else
-			wake(selt + 0.31);
+	if (!onboarding) {
+		freshmarks();
+		freshguide();
+		if (view == ViewPlayer && playsrc < 0)
+			view = ViewBrowse;
+		if ((id = selid()) != lastsel || PG != lastpg) {
+			lastsel = id;
+			lastpg = PG;
+			selt = t;
+		}
+		if (!inguide && hasguide(P) && (it = focused()) && it->kind == KindLive) {
+			if (t - selt > 0.3)
+				epg_want(P, it->id, 0);
+			else
+				wake(selt + 0.31);
+		}
 	}
 	if (playsrc >= 0 && t - lastsave > 5) {
 		saveprogress(t - lastflush > 30);
@@ -2444,7 +2455,8 @@ draw(void)
 	if (playsrc >= 0)
 		player_render((int)vidr.w, (int)vidr.h);
 	gfx_begin(W, H, col(ColBg, 1));
-	anim = view == ViewPlayer ? drawplayer() : drawbrowse();
+	anim = onboarding ? drawonboarding()
+	     : view == ViewPlayer ? drawplayer() : drawbrowse();
 	anim |= drawosd();
 	gfx_end();
 	SDL_GL_SwapWindow(win);
@@ -2471,6 +2483,8 @@ click(int clicks)
 {
 	int i, k;
 
+	if (onboarding)
+		return;
 	if (view == ViewPlayer) {
 		if (clicks == 2)
 			fullscreen(NULL);
@@ -2534,6 +2548,10 @@ handle(SDL_Event *e)
 		running = 0;
 		break;
 	case SDL_TEXTINPUT:
+		if (onboarding) {
+			obtext(e->text.text);
+			break;
+		}
 		if (!searching)
 			break;
 		/* the "/" that opened the palette arrives as text too */
@@ -2548,6 +2566,10 @@ handle(SDL_Event *e)
 		break;
 	case SDL_KEYDOWN:
 		lastinput = now();
+		if (onboarding) {
+			obkey(&e->key.keysym);
+			break;
+		}
 		if (searching) {
 			searchkey(&e->key.keysym);
 			break;
@@ -2576,6 +2598,8 @@ handle(SDL_Event *e)
 			click(e->button.clicks);
 		break;
 	case SDL_MOUSEWHEEL:
+		if (onboarding)
+			break;
 		if (view == ViewPlayer)
 			volume(&(Arg){ .f = e->wheel.preciseY > 0 ? 5 : -5 });
 		else if (searching)
@@ -2681,6 +2705,259 @@ loadsources(const char *path, int required)
 	return n;
 }
 
+static int
+obvisible(int f)
+{
+	if (f == ObName || f == ObType || f == ObUrl)
+		return 1;
+	return obtype == 0 ? f == ObUser || f == ObPass : f == ObXml;
+}
+
+static void
+obmove(int d)
+{
+	do
+		obfield = (obfield + d + ObFieldLast) % ObFieldLast;
+	while (!obvisible(obfield));
+}
+
+/* the buffer of the focused field; NULL for the Type selector */
+static char *
+obfieldbuf(size_t *n)
+{
+	switch (obfield) {
+	case ObName: *n = sizeof obname; return obname;
+	case ObUrl: *n = sizeof oburl; return oburl;
+	case ObUser: *n = sizeof obuser; return obuser;
+	case ObPass: *n = sizeof obpass; return obpass;
+	case ObXml: *n = sizeof obxml; return obxml;
+	}
+	*n = 0;
+	return NULL;
+}
+
+static void
+obtext(const char *s)
+{
+	char *b;
+	size_t n, len;
+
+	if (!(b = obfieldbuf(&n)))
+		return;
+	len = strlen(b);
+	if (len < n)
+		snprintf(b + len, n - len, "%s", s);
+}
+
+static void
+obbackspace(void)
+{
+	char *b;
+	size_t n, len;
+
+	if (!(b = obfieldbuf(&n)))
+		return;
+	len = strlen(b);
+	while (len > 0 && (b[--len] & 0xc0) == 0x80)
+		;
+	b[len] = '\0';
+}
+
+static void
+obhost(char *dst, size_t n, const char *u)
+{
+	const char *p, *e, *at;
+	size_t len;
+
+	p = strstr(u, "://");
+	p = p ? p + 3 : u;
+	for (e = p; *e && *e != '/' && *e != '?' && *e != '#'; e++)
+		;
+	for (at = p; at < e; at++)
+		if (*at == '@')
+			p = at + 1;
+	for (at = p; at < e && *at != ':' && *at != '\\'; at++)
+		;
+	len = at - p;
+	if (!len)
+		snprintf(dst, n, "Source");
+	else
+		snprintf(dst, n, "%.*s", (int)MIN(len, n - 1), p);
+}
+
+/* keep tabs and newlines from breaking the sources file */
+static void
+santab(char *s)
+{
+	for (; *s; s++)
+		if (*s == '\t' || *s == '\n' || *s == '\r')
+			*s = ' ';
+}
+
+/* the password is stored in plaintext here, as it already is in the file */
+static void
+obsave(void)
+{
+	const char *dir = appdir(DirConfig);
+	char path[1100], line[4096];
+	FILE *f;
+	int fd, i, type;
+
+	if (!*oburl) {
+		osd("Enter a URL");
+		return;
+	}
+	if (!*obname)
+		obhost(obname, sizeof obname, oburl);
+	santab(obname);
+	santab(oburl);
+	santab(obuser);
+	santab(obpass);
+	santab(obxml);
+	if (obtype == 0)
+		snprintf(line, sizeof line, "%s\txtream\t%s\t%s\t%s\n",
+		         obname, oburl, obuser, obpass);
+	else if (*obxml)
+		snprintf(line, sizeof line, "%s\tm3u\t%s\t%s\n", obname, oburl, obxml);
+	else
+		snprintf(line, sizeof line, "%s\tm3u\t%s\n", obname, oburl);
+	mkdirp(dir);
+	snprintf(path, sizeof path, "%s/sources", dir);
+	fd = open(path, O_WRONLY | O_CREAT | O_APPEND, 0600);
+	if (fd < 0) {
+		osd("Cannot write %s", path);
+		return;
+	}
+	if (!(f = fdopen(fd, "a"))) {
+		osd("Cannot write %s", path);
+		return;
+	}
+	if (fputs(line, f) == EOF) {
+		fclose(f);
+		osd("Cannot write %s", path);
+		return;
+	}
+	if (fclose(f) != 0) {
+		osd("Cannot write %s", path);
+		return;
+	}
+	type = obtype == 0 ? SrcXtream : SrcM3u;
+	if (type == SrcXtream)
+		addsource(obname, type, oburl, obuser, obpass);
+	else
+		addsource(obname, type, oburl, obxml, "");
+	lists = xrealloc(lists, nsrcs * sizeof *lists);
+	for (i = 0; i < nsrcs - 1; i++)    /* addsource may have moved srcs */
+		lists[i].src = &srcs[i];
+	lists[nsrcs - 1] = (Playlist){0};
+	lists[nsrcs - 1].src = &srcs[nsrcs - 1];
+	snprintf(lists[nsrcs - 1].ext, sizeof lists[nsrcs - 1].ext, "%s", liveext);
+	onboarding = 0;
+	SDL_StopTextInput();
+	usesource(nsrcs - 1);
+	osd("%s added", obname);
+}
+
+static void
+obkey(const SDL_Keysym *k)
+{
+	switch (k->sym) {
+	case SDLK_ESCAPE:
+		if (nsrcs) {
+			onboarding = 0;
+			SDL_StopTextInput();
+			break;
+		}
+		SDL_StopTextInput();
+		quit(NULL);
+		break;
+	case SDLK_q:
+		SDL_StopTextInput();
+		quit(NULL);
+		break;
+	case SDLK_RETURN:
+	case SDLK_KP_ENTER:
+		obsave();
+		break;
+	case SDLK_UP:
+		obmove(-1);
+		break;
+	case SDLK_DOWN:
+		obmove(1);
+		break;
+	case SDLK_TAB:
+		obmove((k->mod & KMOD_SHIFT) ? -1 : 1);
+		break;
+	case SDLK_LEFT:
+	case SDLK_RIGHT:
+		if (obfield == ObType)
+			obtype = !obtype;
+		break;
+	case SDLK_BACKSPACE:
+		obbackspace();
+		break;
+	}
+}
+
+static int
+drawonboarding(void)
+{
+	static const char *labels[] = {
+		"Name", "Type", "URL", "Username", "Password", "XMLTV URL"
+	};
+	char stars[sizeof obpass];
+	const char *s;
+	float p = pad * S, w = MIN(W - 2 * p, 720 * S), x = roundf((W - w) / 2);
+	float lx = x + w * 0.24f, y = roundf(H * 0.12f), rh = 44 * S;
+	size_t i, n;
+	int k;
+
+	SDL_ShowCursor(SDL_ENABLE);
+	gfx_text(FontTitle, x, y, "Welcome to sit", col(ColAccent, 1), w);
+	y += gfx_lineh(FontTitle) + 8 * S;
+	gfx_text(FontText, x, y, "Add your provider (Esc to skip):", col(ColDim, 1), w);
+	y += gfx_lineh(FontText) + 18 * S;
+	for (k = 0; k < ObFieldLast; k++) {
+		Rect r = { x, y, w, rh };
+
+		if (!obvisible(k))
+			continue;
+		if (k == obfield) {
+			gfx_rect(r, col(ColSel, 1), radius * S);
+			gfx_rect((Rect){ r.x, r.y, 3 * S, r.h }, col(ColAccent, 1), 1.5f * S);
+		}
+		gfx_text(FontSmall, x + 16 * S, mid(FontSmall, y, rh), labels[k],
+		         col(k == obfield ? ColFg : ColDim, 1), lx - x - 24 * S);
+		switch (k) {
+		case ObType:
+			s = obtype ? (k == obfield ? "< M3U >" : "M3U")
+			           : (k == obfield ? "< Xtream >" : "Xtream");
+			break;
+		case ObPass:
+			n = strlen(obpass);
+			for (i = 0; i < n; i++)
+				stars[i] = '*';
+			stars[n] = '\0';
+			s = stars;
+			break;
+		case ObName: s = obname; break;
+		case ObUrl: s = oburl; break;
+		case ObUser: s = obuser; break;
+		case ObXml: s = obxml; break;
+		default: s = "";
+		}
+		gfx_text(FontText, lx, mid(FontText, y, rh), s,
+		         col(ColFg, k == obfield ? 1 : 0.85f), r.x + r.w - lx - 16 * S);
+		y += rh + 8 * S;
+	}
+	y = H - 40 * S;
+	gfx_rect((Rect){ 0, y, W, 40 * S }, col(ColPanel, 1), 0);
+	gfx_text(FontSmall, p, mid(FontSmall, y, 40 * S),
+	         "Enter: save   Esc: skip   Up/Down: field   Left/Right: type",
+	         col(ColDim, 1), W - 2 * p);
+	return 0;
+}
+
 static void
 usage(void)
 {
@@ -2726,8 +3003,16 @@ main(int argc, char *argv[])
 			addsource(sources[i].name, sources[i].type, sources[i].url,
 			          sources[i].user, sources[i].pass);
 	}
-	if (!nsrcs)
-		die("no sources; see sources[] in config.h");
+	/* first run: no source file, no command line urls, only the Demo source */
+	onboarding = !srcfile && !nargs && !fileexists(path);
+	for (i = 0; i < nsrcs; i++)
+		if (srcs[i].type != SrcDemo)
+			onboarding = 0;
+	if (!nsrcs) {
+		if (srcfile)
+			die("no usable sources in %s", srcfile);
+		onboarding = 1;    /* nothing configured: offer the form instead of dying */
+	}
 
 	setlocale(LC_NUMERIC, "C");    /* libmpv requires it */
 #ifdef SDL_HINT_WINDOWS_DPI_AWARENESS
@@ -2736,7 +3021,7 @@ main(int argc, char *argv[])
 	SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
 	if (SDL_Init(SDL_INIT_VIDEO) < 0)
 		die("SDL_Init: %s", SDL_GetError());
-	SDL_StopTextInput();    /* on by default; only the search palette wants it */
+	SDL_StopTextInput();    /* on by default; only search and onboarding want it */
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
@@ -2756,6 +3041,8 @@ main(int argc, char *argv[])
 	}
 	SDL_SetWindowMinimumSize(win, (int)(640 * S / ratio), (int)(400 * S / ratio));
 	SDL_ShowWindow(win);
+	if (onboarding)
+		SDL_StartTextInput();
 
 	gfx_init();
 	if (!(reg = findfont(fonts, LEN(fonts))))
@@ -2777,12 +3064,13 @@ main(int argc, char *argv[])
 	net_init(evmpv + 2, useragent);
 	store_load();
 
-	lists = xcalloc(nsrcs, sizeof *lists);
+	lists = xcalloc(MAX(nsrcs, 1), sizeof *lists);
 	for (i = 0; i < nsrcs; i++) {
 		lists[i].src = &srcs[i];
 		snprintf(lists[i].ext, sizeof lists[i].ext, "%s", liveext);
 	}
-	usesource(0);
+	if (nsrcs)
+		usesource(0);
 	if (skipped)
 		osd("Skipped %d unreadable line%s in sources", skipped, skipped == 1 ? "" : "s");
 

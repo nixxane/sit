@@ -39,7 +39,6 @@ jobs:
             mingw-w64-ucrt-x86_64-gcc
             mingw-w64-ucrt-x86_64-pkgconf
             make
-            zip
             mingw-w64-ucrt-x86_64-SDL2
             mingw-w64-ucrt-x86_64-mpv
             mingw-w64-ucrt-x86_64-curl
@@ -55,11 +54,10 @@ jobs:
           ldd sit.exe | awk '/ucrt64/ { print $3 }' | xargs -I{} cp {} sit/app/
           cp -r vendor sit/
           printf '@echo off\r\nset "PATH=%%~dp0app;%%PATH%%"\r\nstart "" "%%~dp0sit.exe"\r\n' > sit/sit.cmd
-          zip -r sit-windows.zip sit
       - uses: actions/upload-artifact@v4
         with:
           name: sit-windows
-          path: sit-windows.zip
+          path: sit
 
   freebsd:
     runs-on: ubuntu-latest
@@ -81,6 +79,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: sit-windows
+      - name: zip
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zip
+          zip -r sit-windows.zip sit
       - name: publish release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -95,6 +98,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: sit-windows
+      - name: zip
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zip
+          zip -r sit-windows.zip sit
       - name: publish latest
         env:
           GH_TOKEN: ${{ github.token }}

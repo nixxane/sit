@@ -50,11 +50,12 @@ jobs:
       - name: package
         shell: msys2 {0}
         run: |
-          mkdir -p app
-          cp sit.exe app/
-          ldd sit.exe | awk '/ucrt64/ { print $3 }' | xargs -I{} cp {} app/
-          cp -r vendor app/
-          zip -r sit-windows.zip app
+          mkdir -p sit/app
+          cp sit.exe sit/
+          ldd sit.exe | awk '/ucrt64/ { print $3 }' | xargs -I{} cp {} sit/app/
+          cp -r vendor sit/
+          printf '@echo off\r\nset "PATH=%%~dp0app;%%PATH%%"\r\nstart "" "%%~dp0sit.exe"\r\n' > sit/sit.cmd
+          zip -r sit-windows.zip sit
       - uses: actions/upload-artifact@v4
         with:
           name: sit-windows

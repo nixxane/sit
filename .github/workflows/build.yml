@@ -58,6 +58,14 @@ jobs:
         with:
           name: sit-windows
           path: sit
+      - name: installer
+        shell: pwsh
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" sit.iss
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sit-setup
+          path: sit-setup.exe
 
   freebsd:
     runs-on: ubuntu-latest
@@ -79,6 +87,9 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: sit-windows
+      - uses: actions/download-artifact@v4
+        with:
+          name: sit-setup
       - name: zip
         run: |
           sudo apt-get update -qq
@@ -88,7 +99,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: gh release create "$GITHUB_REF_NAME" sit-windows.zip --generate-notes --title "sit $GITHUB_REF_NAME"
+        run: gh release create "$GITHUB_REF_NAME" sit-windows.zip sit-setup.exe --generate-notes --title "sit $GITHUB_REF_NAME"
 
   latest:
     if: github.ref == 'refs/heads/main'
@@ -98,6 +109,9 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: sit-windows
+      - uses: actions/download-artifact@v4
+        with:
+          name: sit-setup
       - name: zip
         run: |
           sudo apt-get update -qq
@@ -109,4 +123,4 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           gh release delete latest --yes --cleanup-tag 2>/dev/null || true
-          gh release create latest sit-windows.zip --prerelease --title "Latest build" --notes "Automatic build of $GITHUB_SHA."
+          gh release create latest sit-windows.zip sit-setup.exe --prerelease --title "Latest build" --notes "Automatic build of $GITHUB_SHA."

@@ -2633,8 +2633,21 @@ handle(SDL_Event *e)
 static const char *
 findfont(const char **cands, size_t n)
 {
+	char buf[1100], *base = SDL_GetBasePath();
 	size_t i;
 
+	/* relative entries are looked up next to the executable first, so a
+	 * shortcut or installer need not set the working directory */
+	for (i = 0; base && i < n; i++) {
+		if (cands[i][0] == '/' || strchr(cands[i], ':'))
+			continue;
+		snprintf(buf, sizeof buf, "%s%s", base, cands[i]);
+		if (fileexists(buf)) {
+			SDL_free(base);
+			return xstrdup(buf);
+		}
+	}
+	SDL_free(base);
 	for (i = 0; i < n; i++)
 		if (fileexists(cands[i]))
 			return cands[i];

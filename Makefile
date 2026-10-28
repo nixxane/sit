@@ -18,11 +18,14 @@ img.o: vendor/stb_image.h
 config.h:
 	cp config.def.h $@
 
-sit: ${OBJ}
-	${CC} -o $@ ${OBJ} ${LDFLAGS}
+sit.res.o: sit.rc sit.ico
+	windres sit.rc $@
+
+sit: ${OBJ} ${RES_${OS}}
+	${CC} -o $@ ${OBJ} ${RES_${OS}} ${LDFLAGS}
 
 clean:
-	rm -f sit sit.exe ${OBJ}
+	rm -f sit sit.exe ${OBJ} sit.res.o
 
 install: all
 	mkdir -p ${DESTDIR}${PREFIX}/bin

@@ -14,6 +14,9 @@ GLLIBS_linux = -lGL
 GLLIBS_win   = -lopengl32
 GLLIBS_mac   = -framework OpenGL
 
+# Windows: icon resource
+RES_win      = sit.res.o
+
 # flags
 CPPFLAGS = -DVERSION=\"${VERSION}\" -isystem vendor
 CFLAGS   = -std=c99 -pedantic -Wall -Wextra -O2 `${PKG_CONFIG} --cflags ${PKGS}` ${CPPFLAGS}

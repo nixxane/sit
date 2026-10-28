@@ -23,7 +23,8 @@ Working rules for agents are in `AGENTS.md`.
 | 5 | M3U playlists + XMLTV guide | **done** (`m3u.c`, `xmltv.c`); tested against the fake server, programmes confirmed reaching channels, not yet looked at in the UI or tried on a real provider |
 | 6 | Polish: bundled font, light theme, man page, number entry, Thai | **done** (CJK deferred) |
 | 7 | Ports and releases | **done**: CI green on Ubuntu/macOS/Windows/FreeBSD + Windows zip; `make install` bundles the font; v0.1 released |
-| 8 | Onboarding: first-run source form (writes the sources file) | **done** (code + review); owner UI test pending |
+| 8 | Onboarding: first-run source form (writes the sources file) | **done**, owner-tested in the UI |
+| 9 | Windows install: exe-relative font lookup, icon, Inno Setup installer (`sit.iss`, built in CI) | **done in code**; `make` builds warning-free and runs from another cwd; installer **not yet built or run** (CI only), icon not yet looked at |
 
 Everything above was tested against `test/fakextream.py`; milestones 2 and 3
 were also confirmed by the owner on a real provider, as were the EPG,

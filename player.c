@@ -1,5 +1,6 @@
 /* See LICENSE file for copyright and license details. */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <SDL.h>
@@ -10,7 +11,7 @@
 #include "gfx.h"
 #include "player.h"
 
-enum { PPause = 1, PBuffering, PPos, PDur, PTitle, PVolume, PMute };
+enum { PPause = 1, PBuffering, PPos, PDur, PTitle, PVolume, PMute, PApts };
 
 Player pl;
 static mpv_handle *mpv;
@@ -18,6 +19,10 @@ static mpv_render_context *rctx;
 static unsigned int evbase;
 static char lasterr[256];
 static char *secrets[8];
+/* audio watchdog: see checkaudio() */
+static char *cururl;
+static double apts, aptsat, fixat;
+static int hasaudio, fixes;
 
 /* mpv calls these from its own threads; just poke the main loop */
 static void
@@ -84,11 +89,54 @@ player_init(unsigned int ev, const char *opts[][2], int nopts)
 	mpv_observe_property(mpv, PTitle, "media-title", MPV_FORMAT_STRING);
 	mpv_observe_property(mpv, PVolume, "volume", MPV_FORMAT_DOUBLE);
 	mpv_observe_property(mpv, PMute, "mute", MPV_FORMAT_FLAG);
+	mpv_observe_property(mpv, PApts, "audio-pts", MPV_FORMAT_DOUBLE);
 
 	if (mpv_render_context_create(&rctx, mpv, params) < 0)
 		die("cannot create mpv OpenGL renderer");
 	mpv_set_wakeup_callback(mpv, onwakeup, NULL);
 	mpv_render_context_set_update_callback(rctx, onupdate, NULL);
+}
+
+static double
+secs(void)
+{
+	return SDL_GetTicks() / 1000.0;
+}
+
+static void
+loadurl(const char *url, double start)
+{
+	char opt[64];
+	const char *cmd[] = { "loadfile", url, "replace", "-1", opt, NULL };
+
+	snprintf(opt, sizeof opt, "start=%.0f", start);
+	if (start <= 0)
+		cmd[2] = NULL;
+	pl.loaded = pl.ended = 0;
+	pl.pos = pl.dur = 0;
+	mpv_command_async(mpv, 0, cmd);
+}
+
+/* Windows can drop mpv's audio output (device asleep or switched, long
+ * pauses) while the video goes on: audio-pts stalls or vanishes but
+ * nothing says muted. Called while time-pos moves; first reopen the
+ * output, then reload the stream, then give up for this file. */
+static void
+checkaudio(void)
+{
+	const char *cmd[] = { "ao-reload", NULL };
+	double t = secs();
+
+	if (!hasaudio || pl.paused || pl.buffering || t - aptsat < 3 || fixes >= 2)
+		return;
+	aptsat = fixat = t;
+	if (fixes++ == 0) {
+		mpv_command_async(mpv, 0, cmd);
+		snprintf(pl.notice, sizeof pl.notice, "Audio lost, reopening output");
+	} else if (cururl) {
+		loadurl(cururl, pl.dur > 0 ? pl.pos : 0);
+		snprintf(pl.notice, sizeof pl.notice, "Audio lost, reloading stream");
+	}
 }
 
 static void
@@ -97,11 +145,26 @@ property(int id, mpv_event_property *p)
 	int ok = p->format != MPV_FORMAT_NONE;
 
 	switch (id) {
-	case PPause:     pl.paused = ok && *(int *)p->data; break;
-	case PBuffering: pl.buffering = ok && *(int *)p->data; break;
+	/* restart the watchdog's clock whenever playback resumes */
+	case PPause:     pl.paused = ok && *(int *)p->data; aptsat = secs(); break;
+	case PBuffering: pl.buffering = ok && *(int *)p->data; aptsat = secs(); break;
 	case PMute:      pl.mute = ok && *(int *)p->data; break;
+	case PApts:
+		if (ok && (!hasaudio || *(double *)p->data != apts)) {
+			apts = *(double *)p->data;
+			aptsat = secs();
+			hasaudio = 1;
+			if (fixes && aptsat - fixat > 10)
+				fixes = 0;
+		}
+		break;
 	/* after the end, keep the last position so it can be saved as watched */
-	case PPos:       if (ok || !pl.ended) pl.pos = ok ? *(double *)p->data : 0; break;
+	case PPos:
+		if (ok || !pl.ended)
+			pl.pos = ok ? *(double *)p->data : 0;
+		if (ok)
+			checkaudio();
+		break;
 	case PDur:       if (ok || !pl.ended) pl.dur = ok ? *(double *)p->data : 0; break;
 	case PVolume:    pl.volume = ok ? *(double *)p->data : 0; break;
 	case PTitle:
@@ -160,6 +223,7 @@ player_events(void)
 		case MPV_EVENT_START_FILE:
 			pl.loaded = pl.ended = 0;
 			pl.err[0] = lasterr[0] = '\0';
+			hasaudio = 0;
 			gfx_target_clear(&pl.fb);
 			break;
 		case MPV_EVENT_FILE_LOADED:
@@ -228,15 +292,10 @@ player_swapped(void)
 void
 player_load(const char *url, double start)
 {
-	char opt[64];
-	const char *cmd[] = { "loadfile", url, "replace", "-1", opt, NULL };
-
-	snprintf(opt, sizeof opt, "start=%.0f", start);
-	if (start <= 0)
-		cmd[2] = NULL;
-	pl.loaded = pl.ended = 0;
-	pl.pos = pl.dur = 0;
-	mpv_command_async(mpv, 0, cmd);
+	free(cururl);
+	cururl = xstrdup(url);
+	fixes = 0;
+	loadurl(url, start);
 }
 
 void

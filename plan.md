@@ -10,7 +10,7 @@ Working rules for agents are in `AGENTS.md`.
 
 ---
 
-## 0. Status (last updated 2026-10-27)
+## 0. Status (last updated 2026-10-28)
 
 | # | Milestone | State |
 |---|-----------|-------|
@@ -51,7 +51,17 @@ Only the memory numbers remain to be re-measured on the owner's real lists
 4. ~~Milestone 6~~ — **done**: bundled DejaVu (Thai now renders), light theme
    (`theme` in config.h), `sit.1` man page, channel number entry. CJK still
    renders as `?` (deferred — full CJK would need a large font and atlas).
-5. Code size is ~6,500 non-blank lines without vendor (target was 5,000). `sit.c` is
+5. Sound sometimes goes silent after a while (after a long pause or just
+   playing) on the owner's Windows machine, with no mute shown. Cause not
+   pinned down (likely the audio device dropping out). `player.c` now has a
+   watchdog: if `audio-pts` stalls for 3 s while `time-pos` moves, it runs
+   `ao-reload`, then reloads the stream at the same position, then gives up
+   for that file; each step shows an OSD note. Tested against a forced
+   audio loss (`aid=no`) and an 8 s pause (no false trigger); **not yet
+   confirmed by the owner** on the real problem. If the OSD notes never show
+   when it goes silent, add `{ "log-file", "..." }` to `mpvopts` to find out
+   what mpv sees.
+6. Code size is ~6,500 non-blank lines without vendor (target was 5,000). `sit.c` is
    ~2,450 of them; splitting pages out of it is fair game if it stays readable.
 
 ---

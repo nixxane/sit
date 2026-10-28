@@ -2622,8 +2622,13 @@ handle(SDL_Event *e)
 			ui_list_wheel(&clist, e->wheel.preciseY, rowh * S);
 		break;
 	default:
-		if (e->type == evmpv)
+		if (e->type == evmpv) {
 			player_events();
+			if (pl.notice[0]) {
+				osd("%s", pl.notice);
+				pl.notice[0] = '\0';
+			}
+		}
 		else if (e->type == evmpv + 2)
 			onjob(e->user.data1);
 		break;

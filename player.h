@@ -3,6 +3,7 @@ typedef struct {
 	int loaded, paused, buffering, ended, mute;
 	double pos, dur, volume;
 	char title[256], err[256];
+	char notice[64];  /* for the OSD, cleared by the reader */
 	Target fb;    /* the video, rendered offscreen at display size */
 } Player;
 

@@ -22,7 +22,7 @@ Working rules for agents are in `AGENTS.md`.
 | 4 | EPG: now/next, guide page, catch-up | **done** (Xtream only; XMLTV moved to 5); EPG + catch-up confirmed on a real provider |
 | 5 | M3U playlists + XMLTV guide | **done** (`m3u.c`, `xmltv.c`); tested against the fake server, programmes confirmed reaching channels, not yet looked at in the UI or tried on a real provider |
 | 6 | Polish: bundled font, light theme, man page, number entry, Thai | **done** (CJK deferred) |
-| 7 | Ports and releases | in progress: `make install` bundles the font; CI builds Ubuntu/macOS/Windows/FreeBSD + a Windows zip (first CI run pending) |
+| 7 | Ports and releases | **done**: CI green on Ubuntu/macOS/Windows/FreeBSD + Windows zip; `make install` bundles the font; v0.1 released |
 
 Everything above was tested against `test/fakextream.py`; milestones 2 and 3
 were also confirmed by the owner on a real provider, as were the EPG,
@@ -196,12 +196,9 @@ cache:   ~/.cache/sit/xt-<hash>/...        JSON per action; img/<hash> posters
 
 ## 8. Remaining milestones
 
-Milestones 1–6 are done. What remains:
-
-7. **Ports and releases** — `make install` now bundles the font, and a CI
-   workflow (`.github/workflows/build.yml`) builds on Ubuntu, macOS, Windows
-   (with a DLL zip artifact) and FreeBSD. First CI run pending; macOS/BSD
-   may need small tweaks (zlib `.pc`, pkg-config, GL).
+All milestones (1–7) are done. Optional follow-ups, none blocking: code-sign
+the Windows exe (SmartScreen), make the repo public, cut future releases,
+CJK glyphs, and re-measuring the memory numbers.
 
 Each milestone ends with: warning-free build, tested against the fake
 server (extend it for new features), §0 updated.

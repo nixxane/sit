@@ -10,7 +10,7 @@ Working rules for agents are in `AGENTS.md`.
 
 ---
 
-## 0. Status (last updated 2026-10-28)
+## 0. Status (last updated 2026-11-08)
 
 | # | Milestone | State |
 |---|-----------|-------|
@@ -61,7 +61,12 @@ Only the memory numbers remain to be re-measured on the owner's real lists
    confirmed by the owner** on the real problem. If the OSD notes never show
    when it goes silent, add `{ "log-file", "..." }` to `mpvopts` to find out
    what mpv sees.
-6. Code size is ~6,500 non-blank lines without vendor (target was 5,000). `sit.c` is
+6. Video froze (sound went on) while the window was being resized on
+   Windows: dragging an edge runs Windows' modal size loop, so the main loop
+   stopped drawing. `livedraw()` in `sit.c` is an SDL event watch that draws
+   on the expose and size events SDL sends from inside that loop. Builds
+   warning-free; **not yet confirmed by the owner** with a real drag.
+7. Code size is ~6,500 non-blank lines without vendor (target was 5,000). `sit.c` is
    ~2,450 of them; splitting pages out of it is fair game if it stays readable.
 
 ---

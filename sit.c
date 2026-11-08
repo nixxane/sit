@@ -2547,6 +2547,28 @@ click(int clicks)
 	}
 }
 
+/* while the window is dragged or resized Windows runs its own modal loop
+ * and the main loop stalls; SDL keeps sending expose events from inside
+ * it, so draw from here to keep the video moving */
+static int
+livedraw(void *ud, SDL_Event *e)
+{
+	static int busy;
+	static double prev;
+
+	(void)ud;
+	if (busy || e->type != SDL_WINDOWEVENT ||
+	    (e->window.event != SDL_WINDOWEVENT_EXPOSED &&
+	     e->window.event != SDL_WINDOWEVENT_SIZE_CHANGED))
+		return 1;
+	busy = 1;
+	ui_dt = (float)MIN(now() - prev, 1.0 / 30);
+	prev = now();
+	draw();
+	busy = 0;
+	return 1;
+}
+
 static void
 handle(SDL_Event *e)
 {
@@ -3110,6 +3132,7 @@ main(int argc, char *argv[])
 	if (skipped)
 		osd("Skipped %d unreadable line%s in sources", skipped, skipped == 1 ? "" : "s");
 
+	SDL_AddEventWatch(livedraw, NULL);
 	last = now();
 	while (running) {
 		if (!anim) {

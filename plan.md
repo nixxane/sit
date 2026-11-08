@@ -65,7 +65,7 @@ Only the memory numbers remain to be re-measured on the owner's real lists
    Windows: dragging an edge runs Windows' modal size loop, so the main loop
    stopped drawing. `livedraw()` in `sit.c` is an SDL event watch that draws
    on the expose and size events SDL sends from inside that loop. Builds
-   warning-free; **not yet confirmed by the owner** with a real drag.
+   warning-free; confirmed by the owner.
 7. Code size is ~6,500 non-blank lines without vendor (target was 5,000). `sit.c` is
    ~2,450 of them; splitting pages out of it is fair game if it stays readable.
 

@@ -2549,11 +2549,14 @@ click(int clicks)
 
 /* while the window is dragged or resized Windows runs its own modal loop
  * and the main loop stalls; SDL keeps sending expose events from inside
- * it, so draw from here to keep the video moving */
+ * it, so draw from here to keep the video moving. Only while the main loop
+ * waits for events: calls like SDL_SetWindowFullscreen send size events
+ * synchronously, in the middle of handle() */
+static int busy;
+
 static int
 livedraw(void *ud, SDL_Event *e)
 {
-	static int busy;
 	static double prev;
 
 	(void)ud;
@@ -2655,6 +2658,14 @@ handle(SDL_Event *e)
 			onjob(e->user.data1);
 		break;
 	}
+}
+
+static void
+dispatch(SDL_Event *e)
+{
+	busy = 1;
+	handle(e);
+	busy = 0;
 }
 
 static const char *
@@ -3138,14 +3149,16 @@ main(int argc, char *argv[])
 		if (!anim) {
 			ms = nextwake > 0 ? (int)((nextwake - now()) * 1000) + 1 : -1;
 			if (ms < 0 ? SDL_WaitEvent(&ev) : SDL_WaitEventTimeout(&ev, MAX(ms, 1)))
-				handle(&ev);
+				dispatch(&ev);
 			last = now() - 1.0 / 60;    /* no time passes while idle */
 		}
 		while (SDL_PollEvent(&ev))
-			handle(&ev);
+			dispatch(&ev);
 		ui_dt = (float)MIN(now() - last, 1.0 / 30);
 		last = now();
+		busy = 1;
 		anim = draw();
+		busy = 0;
 	}
 
 	saveprogress(1);
